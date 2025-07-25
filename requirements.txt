@@ -1,0 +1,11 @@
+# ETBSS Projesi Temel Bağımlılıkları
+Flask==2.0.1
+Flask-SQLAlchemy==2.5.1
+Flask-Login==0.5.0
+Werkzeug==2.0.1
+python-dotenv==0.19.0
+gunicorn==20.1.0
+
+# Render.com için ek güvenlik ve optimizasyon
+psycopg2-binary==2.9.3
+whitenoise==6.2.0
