@@ -1,60 +1,31 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-import commonjs from '@rollup/plugin-commonjs'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
-  root: './client',
-  plugins: [react()],
+  plugins: [
+    react(),
+    runtimeErrorOverlay(),
+    ...(process.env.NODE_ENV !== "production" &&
+    process.env.REPL_ID !== undefined
+      ? [
+          await import("@replit/vite-plugin-cartographer").then((m) =>
+            m.cartographer(),
+          ),
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './client/src')
-    }
+      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+    },
   },
+  root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: '../dist/client',
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: true,
-    rollupOptions: {
-      external: [
-        'react',
-        'react-dom',
-        'express',
-        '@neondatabase/serverless',
-        'drizzle-orm'
-      ],
-      plugins: [nodeResolve(), commonjs()],
-      input: {
-        main: path.resolve(__dirname, 'client/index.html')
-      },
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          radix: [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label'
-          ]
-        }
-      }
-    }
   },
-  server: {
-    port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false
-      }
-    }
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom']
-  }
-})
+});
