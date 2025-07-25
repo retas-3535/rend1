@@ -1,71 +1,32 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// server/index.ts
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import routes from './routes.js'; // routes.ts içindeki export default
 
 const app = express();
-// Artırmış JSON limit boyutu (varsayılan 100kb)
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+const PORT = process.env.PORT || 3000;
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+// ES Module ortamında __dirname elde et
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+// JSON ve form verilerini parse et
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+// API rotaları
+app.use('/api', routes);
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
+// Statik dosyaları sun (Vite build sonrası)
+app.use(express.static(path.join(__dirname, '../dist/client')));
 
-      log(logLine);
-    }
-  });
-
-  next();
+// Tek sayfa uygulaması (SPA) için fallback
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/client/index.html'));
 });
 
-(async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+// Sunucuyu başlat
+app.listen(PORT, () => {
+  console.log(`🚀 Server çalışıyor: http://localhost:${PORT}`);
+});
