@@ -1,9 +1,7 @@
-// vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   root: 'client', // Vite projesi client klasöründe
   build: {
@@ -17,7 +15,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './client'),
+      '@': path.resolve(__dirname, 'client/src'),        // -> @/ => client/src
+      '@shared': path.resolve(__dirname, 'shared'),       // -> @shared/ => shared/
     },
   },
 });
